@@ -6,6 +6,11 @@ Shoes.app height: 750, width: 1200 do
 
       @open_custom_button = button 'Open Custom'
       @save_custom_button = button 'Save Custom', state: 'disabled'
+
+      @noise_probability = edit_line
+      @noise_probability.text = '0.001'
+      @add_noise_button = button 'Add Noise', state: 'disabled'
+      @remove_noise_button = button 'Remove Noise', state: 'disabled'
     end
 
     stack width: -150 do
@@ -44,9 +49,21 @@ Shoes.app height: 750, width: 1200 do
     end
   end
 
+  @add_noise_button.click do
+    @image.add_noise(@noise_probability.text.to_f)
+    draw_image
+  end
+
+  @remove_noise_button.click do
+    @image.remove_noise
+    draw_image
+  end
+
   def draw_image
     @save_bmp_button.state = nil
     @save_custom_button.state = nil
+    @add_noise_button.state = nil
+    @remove_noise_button.state = nil
     @meta.text = @image.meta.inspect
     @canvas.height = @image.height * 2
     @canvas.width = @image.width * 2
@@ -165,5 +182,14 @@ class Image
 
   def width
     pixels.length
+  end
+
+  def add_noise(probability)
+    (height * width * probability).round.times do
+      pixels[rand(width)][rand(height)] = [rand(256), rand(256), rand(256)]
+    end
+  end
+
+  def remove_noise
   end
 end
