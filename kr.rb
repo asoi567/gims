@@ -10,6 +10,9 @@ Shoes.app height: 750, width: 1200 do
       @noise_probability = edit_line
       @noise_probability.text = '0.001'
       @add_noise_button = button 'Add Noise', state: 'disabled'
+
+      @threshold = edit_line
+      @threshold.text = '0.1'
       @remove_noise_button = button 'Remove Noise', state: 'disabled'
     end
 
@@ -55,7 +58,7 @@ Shoes.app height: 750, width: 1200 do
   end
 
   @remove_noise_button.click do
-    @image.remove_noise
+    @image.remove_noise(@threshold.text.to_f)
     draw_image
   end
 
@@ -177,11 +180,11 @@ class Image
   end
 
   def height
-    pixels.first.length
+    @height ||= pixels.first.length
   end
 
   def width
-    pixels.length
+    @width ||= pixels.length
   end
 
   def add_noise(probability)
@@ -190,6 +193,54 @@ class Image
     end
   end
 
-  def remove_noise
+  # Пороговый фильтр с квадратным окном 3х3
+  def remove_noise(threshold)
+    new_pixels = []
+    width.times do |x|
+      new_pixels[x] = []
+
+      height.times do |y|
+
+        if (lum(pixels[x][y]) - avg_lum(x, y)).abs > threshold * 255
+          new_pixels[x][y] = (0..2).map { |n| avg_color(x, y, n).to_i }
+        else
+          new_pixels[x][y] = pixels[x][y]
+        end
+      end
+    end
+    @pixels = new_pixels
   end
+
+  def avg_color(x, y, n)
+    avg(x, y) do |pixel|
+      pixel[n]
+    end
+  end
+
+  def avg_lum(x, y)
+    avg(x, y) do |pixel|
+      lum(pixel)
+    end
+  end
+
+  def avg(x, y)
+    [x - 1, x, x + 1]
+      .product([y - 1, y, y + 1])
+      .reject { |xi, yi| xi == x && yi == y }
+      .map { |xi, yi| yield(mirrored_pixel(xi, yi)) }
+      .reduce(:+) / 8
+  end
+
+  def mirrored_pixel(x, y)
+    x = -x if x < 0
+    y = -y if y < 0
+    x = x - (width - x + 1) * 2 if x >= width
+    y = y - (height - y + 1) * 2 if y >= height
+    pixels[x][y]
+  end
+
+  def lum(pixel)
+    pixel.reduce(:+) / 3.0
+  end
+
 end
