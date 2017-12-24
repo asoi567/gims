@@ -205,31 +205,24 @@ class Image
 
   # Пороговый фильтр с квадратным окном 3х3
   def remove_noise(threshold)
-    new_pixels = []
-    width.times do |x|
-      new_pixels[x] = []
-
-      height.times do |y|
-
-        if (lum(pixels[x][y]) - avg_lum(x, y)).abs > threshold * 255
-          new_pixels[x][y] = (0..2).map { |n| avg_color(x, y, n).to_i }
-        else
-          new_pixels[x][y] = pixels[x][y]
-        end
+    iterate do |x ,y|
+      if (lum(x, y) - avg_lum(x, y)).abs > threshold * 255
+        (0..2).map { |n| avg_color(x, y, n).to_i }
+      else
+        pixels[x][y]
       end
     end
-    @pixels = new_pixels
   end
 
   def avg_color(x, y, n)
-    avg(x, y) do |pixel|
-      pixel[n]
+    avg(x, y) do |xi, yi|
+      pixels[xi][yi][n]
     end
   end
 
   def avg_lum(x, y)
-    avg(x, y) do |pixel|
-      lum(pixel)
+    avg(x, y) do |xi, yi|
+      lum(xi, yi)
     end
   end
 
@@ -237,40 +230,45 @@ class Image
     [x - 1, x, x + 1]
       .product([y - 1, y, y + 1])
       .reject { |xi, yi| xi == x && yi == y }
-      .map { |xi, yi| yield(mirrored_pixel(xi, yi)) }
+      .map { |xi, yi| yield(mirrored(xi, yi)) }
       .reduce(:+) / 8
   end
 
-  def mirrored_pixel(x, y)
+  def mirrored(x, y)
     x = -x if x < 0
     y = -y if y < 0
     x = x - (width - x + 1) * 2 if x >= width
     y = y - (height - y + 1) * 2 if y >= height
-    pixels[x][y]
+    [x, y]
   end
 
-  def lum(pixel)
-    pixel.reduce(:+) / 3.0
+  def lum(x, y)
+    pixels[x][y].reduce(:+) / 3.0
   end
 
   # Метод разностей по столбцам
   def find_paths(threshold)
+    iterate do |x, y|
+      case
+      when x <= 1 || x >= width - 1 || y <= 0 || y >= height - 1
+        [0, 0, 0]
+      when (lum(x, y) - lum(x - 1,y)).abs > threshold * 255
+        [255, 255, 255]
+      else
+        [0, 0, 0]
+      end
+    end
+  end
+
+  def iterate
     new_pixels = []
     width.times do |x|
       new_pixels[x] = []
 
       height.times do |y|
-        case
-        when x <= 1 || x >= width - 1 || y <= 0 || y >= height - 1
-          new_pixels[x][y] = [0, 0, 0]
-        when (lum(pixels[x][y]) - lum(pixels[x - 1][y])).abs > threshold * 255
-          new_pixels[x][y] = [255, 255, 255]
-        else
-          new_pixels[x][y] = [0, 0, 0]
-        end
+        new_pixels[x][y] = yield(x, y)
       end
     end
     @pixels = new_pixels
   end
-
 end
