@@ -11,9 +11,13 @@ Shoes.app height: 750, width: 1200 do
       @noise_probability.text = '0.001'
       @add_noise_button = button 'Add Noise', state: 'disabled'
 
-      @threshold = edit_line
-      @threshold.text = '0.1'
+      @remove_noise_threshold = edit_line
+      @remove_noise_threshold.text = '0.1'
       @remove_noise_button = button 'Remove Noise', state: 'disabled'
+
+      @find_paths_threshold = edit_line
+      @find_paths_threshold.text = '0.2'
+      @find_paths_button = button 'Find Paths', state: 'disabled'
     end
 
     stack width: -150 do
@@ -58,7 +62,12 @@ Shoes.app height: 750, width: 1200 do
   end
 
   @remove_noise_button.click do
-    @image.remove_noise(@threshold.text.to_f)
+    @image.remove_noise(@remove_noise_threshold.text.to_f)
+    draw_image
+  end
+
+  @find_paths_button.click do
+    @image.find_paths(@find_paths_threshold.text.to_f)
     draw_image
   end
 
@@ -67,6 +76,7 @@ Shoes.app height: 750, width: 1200 do
     @save_custom_button.state = nil
     @add_noise_button.state = nil
     @remove_noise_button.state = nil
+    @find_paths_button.state = nil
     @meta.text = @image.meta.inspect
     @canvas.height = @image.height * 2
     @canvas.width = @image.width * 2
@@ -241,6 +251,26 @@ class Image
 
   def lum(pixel)
     pixel.reduce(:+) / 3.0
+  end
+
+  # Метод разностей по столбцам
+  def find_paths(threshold)
+    new_pixels = []
+    width.times do |x|
+      new_pixels[x] = []
+
+      height.times do |y|
+        case
+        when x <= 1 || x >= width - 1 || y <= 0 || y >= height - 1
+          new_pixels[x][y] = [0, 0, 0]
+        when (lum(pixels[x][y]) - lum(pixels[x - 1][y])).abs > threshold * 255
+          new_pixels[x][y] = [255, 255, 255]
+        else
+          new_pixels[x][y] = [0, 0, 0]
+        end
+      end
+    end
+    @pixels = new_pixels
   end
 
 end
