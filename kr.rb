@@ -251,11 +251,11 @@ class Image
     iterate do |x, y|
       case
       when x <= 1 || x >= width - 1 || y <= 0 || y >= height - 1
-        [0, 0, 0]
-      when (lum(x, y) - lum(x - 1,y)).abs > threshold * 255
         [255, 255, 255]
-      else
+      when (lum(x, y) - lum(x - 1,y)).abs > threshold * 255
         [0, 0, 0]
+      else
+        [255, 255, 255]
       end
     end
   end
